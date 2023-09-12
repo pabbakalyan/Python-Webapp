@@ -1,0 +1,78 @@
+pipeline {
+    agent any
+    
+    tools {
+        jdk 'jdk'
+    }
+    
+     environment {
+        SCANNER_HOME=tool 'sonar-scanner'
+    }
+    
+
+    stages {
+        stage('Git Checkout') {
+            steps {
+                git branch: 'main', changelog: false, poll: false, url: 'https://github.com/pabbakalyan/Python-Webapp.git'
+            }
+        }
+        
+        stage('OWASP') {
+            steps {
+                dependencyCheck additionalArguments: '--scan ./ ', odcInstallation: 'DC'
+                dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
+            }
+        }
+        
+        stage('Trivy FS Scan') {
+            steps {
+                sh "trivy fs ."
+            }
+        }
+        
+        stage('Sonar Analysis') {
+            steps {
+                withSonarQubeEnv('sonar-server') {
+                    sh ''' $SCANNER_HOME/bin/sonar-scanner -Dsonar.projectName=Python-Webapp \
+                   -Dsonar.projectKey=Python-Webapp '''
+                }
+            }
+        }
+        
+         stage('Docker Build & Tag') {
+            steps {
+                script {
+                    withDockerRegistry(credentialsId: 'docker-cred', toolName: 'docker') {
+                      sh "make image"  
+                    }
+                }
+            }
+        }
+        
+        stage('Trivy Image Scan') {
+            steps {
+                sh "trivy image pabbakalyan/python-webapp:latest"
+            }
+        }
+        
+         stage('Docker Push Image') {
+            steps {
+                script {
+                    withDockerRegistry(credentialsId: 'docker-cred', toolName: 'docker') {
+                      sh "make push"  
+                    }
+                }
+            }
+        }
+        
+        stage('Deploy To Docker Container') {
+            steps {
+                script {
+                    withDockerRegistry(credentialsId: 'docker-cred', toolName: 'docker') {
+                      sh "docker run -d -p 5000:5000 pabbakalyan/python-webapp:latest"  
+                    }
+                }
+            }
+        }
+    }
+}
