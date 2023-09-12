@@ -1,0 +1,41 @@
+The provided pipeline script is written in Groovy and is used in a Jenkins pipeline to automate the build, test, and deployment process of a software project. Let's break down the pipeline step by step:
+
+Agent Declaration (agent any):
+
+This line specifies that the pipeline can run on any available agent in the Jenkins environment. Agents are the computing resources where Jenkins jobs are executed.
+Tool Configuration (tools { jdk 'jdk' }):
+
+This section defines the tools required for the pipeline. It specifies that the 'jdk' tool should be used. This tool definition is used later in the pipeline.
+Environment Variable Declaration (environment { SCANNER_HOME=tool 'sonar-scanner' }):
+
+It defines an environment variable SCANNER_HOME and assigns it the path of the 'sonar-scanner' tool, which was previously defined as 'sonar-scanner' in Jenkins.
+Stages (stages { ... }):
+
+Stages represent distinct phases or steps in the pipeline. Each stage contains specific actions to be performed.
+a. Git Checkout:
+
+This stage checks out the code from a GitHub repository using the specified URL and the 'main' branch.
+b. OWASP:
+
+This stage performs security scanning using OWASP Dependency-Check. It scans the project files and publishes a report in XML format.
+c. Trivy FS Scan:
+
+This stage uses the 'trivy' tool to scan the filesystem for vulnerabilities in the project.
+d. Sonar Analysis:
+
+This stage analyzes the project using SonarQube. It configures the SonarQube environment ('sonar-server') and runs the 'sonar-scanner' tool with specific project settings.
+e. Docker Build & Tag:
+
+This stage builds a Docker image using a 'make' command and tags it. It uses Docker credentials defined in Jenkins ('docker-cred') and the 'docker' tool.
+f. Trivy Image Scan:
+
+This stage scans a Docker image for vulnerabilities using the 'trivy' tool.
+g. Docker Push Image:
+
+This stage pushes the Docker image to a Docker registry using a 'make' command and Docker credentials ('docker-cred').
+h. Deploy To Docker Container:
+
+This stage deploys the Docker image as a container, running it on the host machine, mapping port 5000 to port 5000. This effectively starts the application.
+Each stage contains one or more 'steps' that define the specific actions or commands to be executed within that stage. The 'script' block is used to run shell commands or Groovy scripts within Jenkins. Additionally, the 'withDockerRegistry' block is used to manage Docker credentials and the Docker tool for image-related operations.
+
+This pipeline automates the process of code checkout, security scanning, code analysis, Docker image building and tagging, image scanning, and deployment of a Python web application. It's designed to ensure code quality, security, and efficient deployment of the application.
